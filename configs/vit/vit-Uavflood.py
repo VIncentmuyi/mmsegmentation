@@ -1,23 +1,23 @@
 _base_ = [
-    '../_base_/models/segformer_mit-b0.py',
+    '../_base_/models/upernet_vit-b16_ln_mln.py',
     '../_base_/datasets/UAVflood.py',
-    '../_base_/default_runtime.py', '../_base_/schedules/schedule_40k.py'
+    '../_base_/default_runtime.py',
+    '../_base_/schedules/schedule_160k.py'
 ]
+
 crop_size = (256, 256)
 data_preprocessor = dict(size=crop_size)
-
 model = dict(
     data_preprocessor=data_preprocessor,
-    decode_head=dict(
-        num_classes=2  # 修改为你需要的类别数
-    )
-)
+    backbone=dict(
+        img_size=(256, 256),
+        drop_path_rate=0.1,
+        final_norm=True),
+    decode_head=dict(num_classes=2),
+    auxiliary_head=dict(num_classes=2))
 
-randomness = dict(
-    seed=42,
-    deterministic=False,  # 如需完全可复现，设为True
-)
-
+# AdamW optimizer, no weight decay for position embedding & layer norm
+# in backbone
 optim_wrapper = dict(
     _delete_=True,
     type='OptimWrapper',
@@ -25,9 +25,9 @@ optim_wrapper = dict(
         type='AdamW', lr=0.00006, betas=(0.9, 0.999), weight_decay=0.01),
     paramwise_cfg=dict(
         custom_keys={
-            'pos_block': dict(decay_mult=0.),
-            'norm': dict(decay_mult=0.),
-            'head': dict(lr_mult=10.)
+            'pos_embed': dict(decay_mult=0.),
+            'cls_token': dict(decay_mult=0.),
+            'norm': dict(decay_mult=0.)
         }))
 
 param_scheduler = [
@@ -43,6 +43,12 @@ param_scheduler = [
     )
 ]
 
+randomness = dict(
+    seed=42,
+    deterministic=False,  # 如需完全可复现，设为True
+)
+
+# 保存最佳模型配置
 default_hooks = dict(
     checkpoint=dict(
         type='CheckpointHook',
@@ -54,6 +60,6 @@ default_hooks = dict(
     )
 )
 
-train_dataloader = dict(batch_size=8, num_workers=8)
-val_dataloader = dict(batch_size=8, num_workers=8)
+train_dataloader = dict(batch_size=2, num_workers=4)
+val_dataloader = dict(batch_size=1, num_workers=4)
 test_dataloader = val_dataloader
