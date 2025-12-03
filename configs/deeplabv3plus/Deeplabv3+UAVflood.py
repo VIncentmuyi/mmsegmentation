@@ -8,3 +8,8 @@ model = dict(
     data_preprocessor=data_preprocessor,
     decode_head=dict(num_classes=2),
     auxiliary_head=dict(num_classes=2))
+
+randomness = dict(
+    seed=42,
+    deterministic=False,  # 如需完全可复现，设为True
+)

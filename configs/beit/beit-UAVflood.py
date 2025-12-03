@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/models/upernet_beit.py', '../_base_/datasets/UAVflood.py',
-    '../_base_/default_runtime.py', '../_base_/schedules/schedule_160k.py'
+    '../_base_/default_runtime.py', '../_base_/schedules/schedule_40k.py'
 ]
 crop_size = (256, 256)
 data_preprocessor = dict(size=crop_size)
@@ -29,24 +29,15 @@ param_scheduler = [
         type='PolyLR',
         power=1.0,
         begin=1500,
-        end=160000,
+        end=40000,
         eta_min=0.0,
         by_epoch=False,
     )
 ]
 
-default_hooks = dict(
-    checkpoint=dict(
-        type='CheckpointHook',
-        by_epoch=False,
-        interval=4000,
-        save_best='mIoU',
-        rule='greater',
-        max_keep_ckpts=1
-    )
-)
-train_dataloader = dict(batch_size=2, num_workers=4)
-val_dataloader = dict(batch_size=1, num_workers=4)
+
+train_dataloader = dict(batch_size=8, num_workers=8)
+val_dataloader = dict(batch_size=8, num_workers=8)
 test_dataloader = val_dataloader
 
 

@@ -2,7 +2,7 @@ _base_ = [
     '../_base_/models/deeplabv3_unet_s5-d16.py',
     '../_base_/datasets/UAVflood.py',
     '../_base_/default_runtime.py',
-    '../_base_/schedules/schedule_160k.py'
+    '../_base_/schedules/schedule_40k.py'
 ]
 
 crop_size = (256, 256)
@@ -27,7 +27,7 @@ param_scheduler = [
         eta_min=1e-4,
         power=0.9,
         begin=1500,
-        end=160000,
+        end=40000,
         by_epoch=False,
     )
 ]
