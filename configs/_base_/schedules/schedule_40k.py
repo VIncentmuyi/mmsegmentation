@@ -22,3 +22,4 @@ default_hooks = dict(
     checkpoint=dict(type='CheckpointHook', by_epoch=False, interval=4000),
     sampler_seed=dict(type='DistSamplerSeedHook'),
     visualization=dict(type='SegVisualizationHook'))
+evaluation = dict(interval=4000, metric='mIoU', pre_eval=True, save_best='mIoU')
