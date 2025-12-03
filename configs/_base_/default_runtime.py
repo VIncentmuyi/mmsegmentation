@@ -13,4 +13,3 @@ load_from = None
 resume = False
 
 tta_model = dict(type='SegTTAModel')
-evaluation = dict(interval=4000, metric='mIoU', pre_eval=True, save_best='mIoU')
