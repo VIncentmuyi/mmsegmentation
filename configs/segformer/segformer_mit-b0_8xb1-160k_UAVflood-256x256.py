@@ -43,17 +43,6 @@ param_scheduler = [
     )
 ]
 
-default_hooks = dict(
-    checkpoint=dict(
-        type='CheckpointHook',
-        by_epoch=False,
-        interval=4000,
-        save_best='mIoU',
-        rule='greater',
-        max_keep_ckpts=1
-    )
-)
-
 train_dataloader = dict(batch_size=8, num_workers=8)
 val_dataloader = dict(batch_size=8, num_workers=8)
 test_dataloader = val_dataloader

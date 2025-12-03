@@ -48,18 +48,6 @@ randomness = dict(
     deterministic=False,  # 如需完全可复现，设为True
 )
 
-# 保存最佳模型配置
-default_hooks = dict(
-    checkpoint=dict(
-        type='CheckpointHook',
-        by_epoch=False,
-        interval=4000,
-        save_best='mIoU',
-        rule='greater',
-        max_keep_ckpts=1
-    )
-)
-
 train_dataloader = dict(batch_size=2, num_workers=4)
 val_dataloader = dict(batch_size=1, num_workers=4)
 test_dataloader = val_dataloader

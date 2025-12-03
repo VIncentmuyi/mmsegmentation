@@ -153,18 +153,6 @@ param_scheduler = [
     )
 ]
 
-# 保存最佳模型配置
-default_hooks = dict(
-    checkpoint=dict(
-        type='CheckpointHook',
-        by_epoch=False,
-        interval=4000,
-        save_best='mIoU',
-        rule='greater',
-        max_keep_ckpts=1
-    )
-)
-
 randomness = dict(
     seed=42,
     deterministic=False,  # 如需完全可复现，设为True
