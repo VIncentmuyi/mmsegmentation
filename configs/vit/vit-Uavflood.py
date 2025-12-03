@@ -2,7 +2,7 @@ _base_ = [
     '../_base_/models/upernet_vit-b16_ln_mln.py',
     '../_base_/datasets/UAVflood.py',
     '../_base_/default_runtime.py',
-    '../_base_/schedules/schedule_160k.py'
+    '../_base_/schedules/schedule_40k.py'
 ]
 
 crop_size = (256, 256)
