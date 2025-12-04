@@ -1,19 +1,20 @@
-# model settings
+# UNet for GF 5-channel imagery
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 data_preprocessor = dict(
     type='SegDataPreProcessor',
-    mean=[123.675, 116.28, 103.53],
-    std=[58.395, 57.12, 57.375],
-    bgr_to_rgb=True,
+    mean=[432.02181, 315.92948, 246.468659, 310.61462, 360.267789],
+    std=[97.73313111900238, 85.78646917160748, 95.78015824658593, 124.84677067613467, 251.73965882246978],
+    bgr_to_rgb=False,  # Not RGB imagery
     pad_val=0,
     seg_pad_val=255)
+
 model = dict(
     type='EncoderDecoder',
     data_preprocessor=data_preprocessor,
     pretrained=None,
     backbone=dict(
         type='UNet',
-        in_channels=3,
+        in_channels=5,  # 5-channel input
         base_channels=64,
         num_stages=5,
         strides=(1, 1, 1, 1, 1),
@@ -53,6 +54,5 @@ model = dict(
         align_corners=False,
         loss_decode=dict(
             type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
-    # model training and testing settings
     train_cfg=dict(),
     test_cfg=dict(mode='slide', crop_size=256, stride=170))

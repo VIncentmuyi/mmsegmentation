@@ -1,0 +1,91 @@
+# GF 5-channel dataset settings
+dataset_type = 'UAVfloodDataset'
+data_root = '/mnt/d/Project/Code/Floodnet/data/mixed_dataset/GF/'
+crop_size = (256, 256)
+
+# GF 5-channel normalization parameters
+train_pipeline = [
+    dict(type='LoadSingleRSImageFromFile'),
+    dict(type='LoadAnnotations', reduce_zero_label=False),
+    dict(
+        type='RandomResize',
+        scale=(2048, 512),
+        ratio_range=(0.5, 2.0),
+        keep_ratio=True),
+    dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+    dict(type='RandomFlip', prob=0.5),
+    # PhotoMetricDistortion removed - not suitable for multispectral imagery
+    dict(type='PackSegInputs')
+]
+
+test_pipeline = [
+    dict(type='LoadSingleRSImageFromFile'),
+    dict(type='Resize', scale=(1024, 1024), keep_ratio=True),
+    dict(type='LoadAnnotations', reduce_zero_label=False),
+    dict(type='PackSegInputs')
+]
+
+img_ratios = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+tta_pipeline = [
+    dict(type='LoadSingleRSImageFromFile', backend_args=None),
+    dict(
+        type='TestTimeAug',
+        transforms=[
+            [
+                dict(type='Resize', scale_factor=r, keep_ratio=True)
+                for r in img_ratios
+            ],
+            [
+                dict(type='RandomFlip', prob=0., direction='horizontal'),
+                dict(type='RandomFlip', prob=1., direction='horizontal')
+            ],
+            [dict(type='LoadAnnotations')],
+            [dict(type='PackSegInputs')]
+        ])
+]
+
+train_dataloader = dict(
+    batch_size=8,
+    num_workers=8,
+    persistent_workers=True,
+    sampler=dict(type='InfiniteSampler', shuffle=True),
+    dataset=dict(
+        type=dataset_type,
+        data_root=data_root,
+        data_prefix=dict(
+            img_path='train/images', seg_map_path='train/labels'),
+        pipeline=train_pipeline))
+
+val_dataloader = dict(
+    batch_size=8,
+    num_workers=8,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type=dataset_type,
+        data_root=data_root,
+        data_prefix=dict(img_path='val/images', seg_map_path='val/labels'),
+        pipeline=test_pipeline))
+
+test_dataloader = dict(
+    batch_size=8,
+    num_workers=8,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type=dataset_type,
+        data_root=data_root,
+        data_prefix=dict(img_path='test/images', seg_map_path='test/labels'),
+        pipeline=test_pipeline))
+
+val_evaluator = dict(
+    type='IoUMetric',
+    iou_metrics=['mIoU'],
+    prefix='val'
+)
+
+test_evaluator = dict(
+    type='IoUMetric',
+    iou_metrics=['mIoU'],
+    prefix='test'
+)

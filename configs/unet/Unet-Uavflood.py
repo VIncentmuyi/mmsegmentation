@@ -1,6 +1,6 @@
 _base_ = [
     '../_base_/models/deeplabv3_unet_s5-d16.py',
-    '../_base_/datasets/UAVflood.py',
+    '../_base_/datasets/GFflood.py',
     '../_base_/default_runtime.py',
     '../_base_/schedules/schedule_40k.py'
 ]
