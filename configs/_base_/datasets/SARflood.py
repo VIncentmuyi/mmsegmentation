@@ -1,6 +1,6 @@
 # SAR 8-channel dataset settings
 dataset_type = 'UAVfloodDataset'
-data_root = '/mnt/d/Project/Code/Floodnet/data/mixed_dataset/SAR/'
+data_root = '../Floodnet/data/mixed_dataset/SAR/'
 crop_size = (256, 256)
 
 # SAR 8-channel normalization parameters

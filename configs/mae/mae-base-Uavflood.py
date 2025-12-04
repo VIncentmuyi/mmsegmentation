@@ -1,5 +1,5 @@
 _base_ = [
-    '../_base_/models/upernet_mae.py', '../_base_/datasets/UAVflood.py',
+    '../_base_/models/upernet_mae.py', '../_base_/datasets/GFflood.py',
     '../_base_/default_runtime.py', '../_base_/schedules/schedule_40k.py'
 ]
 crop_size = (256, 256)
@@ -39,7 +39,7 @@ param_scheduler = [
         eta_min=0.0,
         power=1.0,
         begin=1500,
-        end=40000,
+        end=20000,
         by_epoch=False,
     )
 ]

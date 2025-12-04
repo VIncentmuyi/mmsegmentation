@@ -1,6 +1,6 @@
 # dataset settings
 dataset_type = 'UAVfloodDataset'
-data_root = '/mnt/d/Project/Code/Floodnet/data/mixed_dataset/floodnet/'
+data_root = '../Floodnet/data/mixed_dataset/floodnet/'
 crop_size = (256, 256)
 train_pipeline = [
     dict(type='LoadImageFromFile'),

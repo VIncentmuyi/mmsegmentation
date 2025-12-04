@@ -1,6 +1,6 @@
 # GF 5-channel dataset settings
 dataset_type = 'UAVfloodDataset'
-data_root = '/mnt/d/Project/Code/Floodnet/data/mixed_dataset/GF/'
+data_root = '../Floodnet/data/mixed_dataset/GF/'
 crop_size = (256, 256)
 
 # GF 5-channel normalization parameters
