@@ -4,9 +4,11 @@ import warnings
 from typing import Optional, Sequence
 
 import mmcv
+import numpy as np
 from mmengine.fileio import get
 from mmengine.hooks import Hook
 from mmengine.runner import Runner
+from mmengine.utils import mkdir_or_exist
 from mmengine.visualization import Visualizer
 
 from mmseg.registry import HOOKS
@@ -15,14 +17,8 @@ from mmseg.structures import SegDataSample
 
 @HOOKS.register_module()
 class SegVisualizationHook(Hook):
-    """Segmentation Visualization Hook. Used to visualize validation and
-    testing process prediction results.
-
-    In the testing phase:
-
-    1. If ``show`` is True, it means that only the prediction results are
-        visualized without storing data, so ``vis_backends`` needs to
-        be excluded.
+    """Segmentation Visualization Hook. This hook visualize the prediction
+    results during validation and testing.
 
     Args:
         draw (bool): whether to draw prediction results. If it is False,
@@ -30,10 +26,8 @@ class SegVisualizationHook(Hook):
         interval (int): The interval of visualization. Defaults to 50.
         show (bool): Whether to display the drawn image. Default to False.
         wait_time (float): The interval of show (s). Defaults to 0.
-        backend_args (dict, Optional): Arguments to instantiate a file backend.
-            See https://mmengine.readthedocs.io/en/latest/api/fileio.htm
-            for details. Defaults to None.
-            Notes: mmcv>=2.0.0rc4, mmengine>=0.2.0 required.
+        backend_args (dict, Optional): Arguments to instantiate a file client.
+            Defaults to None.
     """
 
     def __init__(self,
@@ -52,16 +46,23 @@ class SegVisualizationHook(Hook):
                           'the prediction results are visualized '
                           'without storing data, so vis_backends '
                           'needs to be excluded.')
-
-        self.wait_time = wait_time
-        self.backend_args = backend_args.copy() if backend_args else None
+            self.wait_time = wait_time
+        else:
+            self.wait_time = 0.
         self.draw = draw
-        if not self.draw:
-            warnings.warn('The draw is False, it means that the '
-                          'hook for visualization will not take '
-                          'effect. The results will NOT be '
-                          'visualized or stored.')
-        self._test_index = 0
+        self.backend_args = backend_args
+
+    def _create_dummy_image(self, height: int, width: int) -> np.ndarray:
+        """Create a dummy black image for visualization.
+
+        Args:
+            height: Image height
+            width: Image width
+
+        Returns:
+            Black RGB image of shape (H, W, 3)
+        """
+        return np.zeros((height, width, 3), dtype=np.uint8)
 
     def after_val_iter(self, runner: Runner, batch_idx: int, data_batch: dict,
                        outputs: Sequence[SegDataSample]) -> None:
@@ -71,59 +72,85 @@ class SegVisualizationHook(Hook):
             runner (:obj:`Runner`): The runner of the validation process.
             batch_idx (int): The index of the current batch in the val loop.
             data_batch (dict): Data from dataloader.
-            outputs (Sequence[:obj:`SegDataSample`]]): A batch of data samples
-                that contain annotations and predictions.
+            outputs (Sequence[:obj:`SegDataSample`]): Outputs from model.
         """
         if self.draw is False:
             return
 
-        # There is no guarantee that the same batch of images
-        # is visualized for each evaluation.
-        total_curr_iter = runner.iter + batch_idx
+        if self.every_n_inner_iters(batch_idx, self.interval):
+            for output in outputs:
+                img_path = output.img_path
+                img_name = osp.basename(img_path)
 
-        # Visualize only the first data
-        img_path = outputs[0].img_path
-        img_bytes = get(img_path, backend_args=self.backend_args)
-        img = mmcv.imfrombytes(img_bytes, channel_order='rgb')
-        window_name = f'val_{osp.basename(img_path)}'
+                # Get image size from prediction
+                if hasattr(output, 'pred_sem_seg'):
+                    pred_shape = output.pred_sem_seg.data.shape
+                    h, w = pred_shape[-2], pred_shape[-1]
+                elif hasattr(output, 'gt_sem_seg'):
+                    gt_shape = output.gt_sem_seg.data.shape
+                    h, w = gt_shape[-2], gt_shape[-1]
+                else:
+                    # Fallback to default size
+                    h, w = 512, 512
 
-        if total_curr_iter % self.interval == 0:
-            self._visualizer.add_datasample(
-                window_name,
-                img,
-                data_sample=outputs[0],
-                show=self.show,
-                wait_time=self.wait_time,
-                step=total_curr_iter)
+                # Create dummy image instead of loading original
+                img = self._create_dummy_image(h, w)
+
+                # Only draw prediction, not ground truth
+                self._visualizer.add_datasample(
+                    img_name,
+                    img,
+                    data_sample=output,
+                    draw_gt=False,  # Don't draw GT
+                    draw_pred=True,  # Only draw prediction
+                    show=self.show,
+                    wait_time=self.wait_time,
+                    step=runner.iter)
 
     def after_test_iter(self, runner: Runner, batch_idx: int, data_batch: dict,
                         outputs: Sequence[SegDataSample]) -> None:
-        """Run after every testing iterations.
+        """Run after every testing iteration.
 
         Args:
             runner (:obj:`Runner`): The runner of the testing process.
-            batch_idx (int): The index of the current batch in the val loop.
+            batch_idx (int): The index of the current batch in the test loop.
             data_batch (dict): Data from dataloader.
-            outputs (Sequence[:obj:`SegDataSample`]): A batch of data samples
-                that contain annotations and predictions.
+            outputs (Sequence[:obj:`SegDataSample`]]): Outputs from model.
         """
         if self.draw is False:
             return
 
-        for data_sample in outputs:
-            self._test_index += 1
+        for output in outputs:
+            img_path = output.img_path
+            img_name = osp.basename(img_path)
 
-            img_path = data_sample.img_path
-            window_name = f'test_{osp.basename(img_path)}'
+            # Get image size from prediction
+            if hasattr(output, 'pred_sem_seg'):
+                pred_shape = output.pred_sem_seg.data.shape
+                h, w = pred_shape[-2], pred_shape[-1]
+            elif hasattr(output, 'gt_sem_seg'):
+                gt_shape = output.gt_sem_seg.data.shape
+                h, w = gt_shape[-2], gt_shape[-1]
+            else:
+                # Fallback to default size
+                h, w = 512, 512
 
-            img_path = data_sample.img_path
-            img_bytes = get(img_path, backend_args=self.backend_args)
-            img = mmcv.imfrombytes(img_bytes, channel_order='rgb')
+            # Create dummy image instead of loading original
+            img = self._create_dummy_image(h, w)
 
+            out_file = None
+            if self.draw and runner.rank == 0:
+                mkdir_or_exist(osp.join(runner.work_dir, 'vis_data', 'vis_image'))
+                out_file = osp.join(runner.work_dir, 'vis_data', 'vis_image', img_name)
+
+            # Only draw prediction, not ground truth
             self._visualizer.add_datasample(
-                window_name,
+                img_name,
                 img,
-                data_sample=data_sample,
+                data_sample=output,
+                draw_gt=False,  # Don't draw GT
+                draw_pred=True,  # Only draw prediction
                 show=self.show,
                 wait_time=self.wait_time,
-                step=self._test_index)
+                out_file=out_file,
+                step=runner.iter)
